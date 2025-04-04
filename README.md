@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YouTube Downloader
 
-## Getting Started
+A modern web application that allows you to download YouTube videos and playlists using yt-dlp. The application provides two main features:
 
-First, run the development server:
+1. Download videos by entering a YouTube URL
+2. Download videos from an RSS feed
+
+## Features
+
+- Download single videos by URL
+- Download entire playlists
+- Support for RSS feed downloads
+- Modern, responsive UI
+- Multiple format options
+- Easy to use interface
+
+## Prerequisites
+
+- Node.js (v20 or higher)
+- npm or yarn
+- Python 3.7 or higher (for yt-dlp)
+- yt-dlp installed on your system
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/jopoepl/yt-downloader.git
+
+
+
+cd yt-dlp-downloader
+```
+
+2. Install Python dependencies:
+
+```bash
+pip install yt-dlp
+```
+
+3. Install Node.js dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+## Usage
+
+1. Start the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Open your browser and navigate to `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+3. Choose your download method:
+   - **URL Download**: Enter a YouTube URL and select your preferred format
+   - **RSS Feed**: Enter an RSS feed URL to download multiple videos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Building for Production
 
-## Learn More
+To create a production build:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+# or
+yarn build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To start the production server:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run start
+# or
+yarn start
+```
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+yt-dlp-downloader/
+├── app/                 # Next.js app directory
+│   ├── api/            # API routes
+│   ├── components/     # React components
+│   └── page.tsx        # Main page component
+├── public/             # Static files
+└── package.json        # Project dependencies
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Acknowledgments
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - The core download engine
+- [Next.js](https://nextjs.org/) - The React framework used
+- [React](https://reactjs.org/) - The JavaScript library used
