@@ -1,19 +1,29 @@
-import { NextResponse } from "next/server";
 import { exec } from "child_process";
-import { promisify } from "util";
+import { NextResponse } from "next/server";
 import { createReadStream } from "fs";
+import { promisify } from "util";
 import { unlink } from "fs/promises";
 import path from "path";
 import os from "os";
 
 const execAsync = promisify(exec);
 
+// Function to sanitize filename
+function sanitizeFilename(filename) {
+  return filename
+    .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+    .replace(/[^a-zA-Z0-9._-]/g, "_") // Replace any other special chars with underscore
+    .replace(/_+/g, "_"); // Replace multiple underscores with single one
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const videoId = searchParams.get("videoId");
   const format = searchParams.get("format");
-  const suggestedFilename =
-    searchParams.get("filename") || `video-${videoId}.mp4`;
+  const suggestedFilename = sanitizeFilename(
+    searchParams.get("filename") || `video-${videoId}.mp4`
+  );
+  const convertToH264 = searchParams.get("h264") === "true";
 
   if (!videoId || !format) {
     return NextResponse.json(
@@ -31,24 +41,40 @@ export async function GET(request) {
     const outputFileName = `yt-dlp-${videoId}-${Date.now()}.mp4`;
     tempFilePath = path.join(tempDir, outputFileName);
 
-    // Make sure the format string has a proper + sign if it needs one
-    let cleanFormat = format;
+    // Clean the format string
+    let cleanFormat = format.replace(/(\d+)\s+bestaudio/, "$1+bestaudio");
 
-    // Clean the format string - ensure it has proper syntax
-    // First, handle the space issue between format ID and bestaudio
-    cleanFormat = cleanFormat.replace(/(\d+)\s+bestaudio/, "$1+bestaudio");
+    // Build yt-dlp command with optimizations
+    let ytDlpOptions = [
+      "-f",
+      cleanFormat,
+      "--no-playlist",
+      "--progress",
+      "--newline",
+    ];
 
-    // Log format debugging info
-    console.log(`Format requested: "${format}"`);
-    console.log(`Clean format: "${cleanFormat}"`);
-
-    // Use yt-dlp with merged output format explicitly set for combined formats
-    let mergeOption = "";
     if (cleanFormat.includes("+")) {
-      mergeOption = " --merge-output-format mp4";
+      ytDlpOptions.push("--merge-output-format", "mp4");
     }
 
-    const command = `yt-dlp -f "${cleanFormat}"${mergeOption} -o "${tempFilePath}" "${videoUrl}"`;
+    // If H.264 conversion is needed, use yt-dlp's post-processing
+    if (convertToH264) {
+      ytDlpOptions = ytDlpOptions.concat([
+        "--postprocessor-args",
+        "ffmpeg:-vcodec libx264 -preset medium -crf 23 -acodec aac -b:a 192k -movflags +faststart",
+        "--recode-video",
+        "mp4",
+      ]);
+    }
+
+    // Properly escape the options for shell execution
+    const escapedOptions = ytDlpOptions.map((opt) =>
+      opt.includes(" ") ? `"${opt}"` : opt
+    );
+
+    const command = `yt-dlp ${escapedOptions.join(
+      " "
+    )} -o "${tempFilePath}" "${videoUrl}"`;
     console.log(`Executing: ${command}`);
 
     // Execute the command
@@ -56,18 +82,16 @@ export async function GET(request) {
     console.log(`Command stdout: ${stdout}`);
     if (stderr) console.log(`Command stderr: ${stderr}`);
 
-    console.log(`Downloaded file saved to: ${tempFilePath}`);
-
     // Create a ReadStream for the file
     const fileStream = createReadStream(tempFilePath);
 
-    // Determine content type based on format
-    let contentType = "video/mp4";
-    if (format.includes("audio only") || suggestedFilename.endsWith(".m4a")) {
-      contentType = "audio/mp4";
-    }
+    // Determine content type
+    const contentType =
+      format.includes("audio only") || suggestedFilename.endsWith(".m4a")
+        ? "audio/mp4"
+        : "video/mp4";
 
-    // Return the file as a downloadable response with proper headers
+    // Return the file
     return new Response(fileStream, {
       headers: {
         "Content-Disposition": `attachment; filename="${suggestedFilename}"`,
@@ -81,7 +105,7 @@ export async function GET(request) {
       { status: 500 }
     );
   } finally {
-    // Clean up the temp file if it exists (with a delay to ensure streaming completes)
+    // Clean up temp file after streaming (with delay)
     if (tempFilePath) {
       setTimeout(async () => {
         try {
@@ -90,7 +114,7 @@ export async function GET(request) {
         } catch (err) {
           console.error(`Failed to delete temp file: ${err.message}`);
         }
-      }, 10000); // 10 second delay
+      }, 10000);
     }
   }
 }

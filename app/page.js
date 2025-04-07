@@ -43,6 +43,11 @@ export default function Home() {
     });
   };
 
+  // Download format popup state
+  const [selectedFormat, setSelectedFormat] = useState(null);
+  const [showFormatPopup, setShowFormatPopup] = useState(false);
+  const [convertToH264, setConvertToH264] = useState(false);
+
   // Fetch videos from channel ID
   const fetchVideos = async () => {
     if (!channelId) {
@@ -163,14 +168,19 @@ export default function Home() {
       const cleanFormat = format.format_id.replace(/\s+/g, "");
 
       // Use the download API
-      window.location.href = `/api/direct-download?videoId=${videoId}&format=${encodeURIComponent(
+      const downloadUrl = `/api/direct-download?videoId=${videoId}&format=${encodeURIComponent(
         cleanFormat
-      )}&filename=${encodeURIComponent(format.filename || "video.mp4")}`;
+      )}&filename=${encodeURIComponent(format.filename || "video.mp4")}${
+        convertToH264 ? "&h264=true" : ""
+      }`;
+
+      window.location.href = downloadUrl;
 
       // Close the popup after starting download
       setTimeout(() => {
         setActivePopupId(null);
         setDownloadingFormat(null);
+        setConvertToH264(false);
       }, 1000);
     } catch (err) {
       setError(err.message);
@@ -458,6 +468,17 @@ export default function Home() {
                 </div>
 
                 <h2 className={styles.downloadHeading}>Download Options</h2>
+                <div className={styles.h264Toggle}>
+                  <input
+                    type="checkbox"
+                    id="h264ConversionSingle"
+                    checked={convertToH264}
+                    onChange={(e) => setConvertToH264(e.target.checked)}
+                  />
+                  <label htmlFor="h264ConversionSingle">
+                    Convert to H.264/AAC (MSN Compatible)
+                  </label>
+                </div>
                 <div className={styles.formatGrid}>
                   {singleVideoInfo.formats.map((format, index) => (
                     <button
@@ -490,6 +511,17 @@ export default function Home() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2>Select Download Format</h2>
+              <div className={styles.h264Toggle}>
+                <input
+                  type="checkbox"
+                  id="h264Conversion"
+                  checked={convertToH264}
+                  onChange={(e) => setConvertToH264(e.target.checked)}
+                />
+                <label htmlFor="h264Conversion">
+                  Convert to H.264/AAC (MSN Compatible)
+                </label>
+              </div>
               <div className={styles.formatGrid}>
                 {currentVideoFormats.map((format, index) => (
                   <button
@@ -516,6 +548,54 @@ export default function Home() {
               <button
                 className={styles.closeButton}
                 onClick={() => setActivePopupId(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showFormatPopup && (
+          <div className={styles.formatPopup}>
+            <div className={styles.formatPopupContent}>
+              <h3>Select Download Format</h3>
+              <div className={styles.h264Toggle}>
+                <input
+                  type="checkbox"
+                  id="h264Conversion"
+                  checked={convertToH264}
+                  onChange={(e) => setConvertToH264(e.target.checked)}
+                />
+                <label htmlFor="h264Conversion">
+                  Convert to H.264/AAC (MSN Compatible)
+                </label>
+              </div>
+              <div className={styles.formatList}>
+                {currentVideoFormats.map((format, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleDownload(activePopupId, format)}
+                    className={`${styles.formatButton} ${
+                      downloadingFormat === format.format_id
+                        ? styles.loading
+                        : ""
+                    }`}
+                    disabled={downloadingFormat === format.format_id}
+                  >
+                    {downloadingFormat === format.format_id ? (
+                      <div className={styles.buttonText}>
+                        <div className={styles.spinner} />
+                        Downloading...
+                      </div>
+                    ) : (
+                      `${format.quality} (${format.ext})`
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                className={styles.closeButton}
+                onClick={() => setShowFormatPopup(false)}
               >
                 Close
               </button>
